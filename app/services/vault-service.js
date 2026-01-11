@@ -171,22 +171,43 @@ async function getPasswordHealth() {
     const accounts = await getAccounts();
     const stats = { weak: 0, reused: 0, strong: 0 };
     const chart = { weak: 0, reused: 0, strong: 0 };
-    const counts = {};
+    
+    const passCounts = {};
+    const comboCounts = {};
 
     accounts.forEach(a => {
-        if (a.password) counts[a.password] = (counts[a.password] || 0) + 1;
+        if (a.password) {
+            passCounts[a.password] = (passCounts[a.password] || 0) + 1;
+            const combo = `${a.username || ''}-${a.password}`;
+            comboCounts[combo] = (comboCounts[combo] || 0) + 1;
+        }
     });
 
     for (const a of accounts) {
         if (!a.password) continue;
-        const isReused = counts[a.password] > 1;
+
+        const isPassReused = passCounts[a.password] > 1;
+        const combo = `${a.username || ''}-${a.password}`;
+        const isComboReused = comboCounts[combo] > 1;
+
+        const isReused = isPassReused || isComboReused;
+        
         const isSimple = a.password.length < 8 || !/\d/.test(a.password) || !/[a-zA-Z]/.test(a.password);
         const leaks = await checkPwned(a.password);
         const isWeak = isSimple || leaks > 0;
 
-        if (isWeak) { stats.weak++; chart.weak++; }
-        else if (isReused) { stats.reused++; chart.reused++; }
-        else { stats.strong++; chart.strong++; }
+        if (isReused) { 
+            stats.reused++; 
+            chart.reused++; 
+        } 
+        else if (isWeak) { 
+            stats.weak++; 
+            chart.weak++; 
+        } 
+        else { 
+            stats.strong++; 
+            chart.strong++; 
+        }
     }
 
     return { stats, chart, total: accounts.length };

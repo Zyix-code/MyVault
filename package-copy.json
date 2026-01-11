@@ -4,10 +4,9 @@
   "version": "1.0.0",
   "description": "Kişisel verilerinizi en üst düzey güvenlik standartlarıyla koruyan gelişmiş kasa uygulaması (zyixcode tarafından yapılmıştır).",
   "main": "main.js",
-  "type": "commonjs",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder build --win",
+    "build": "electron-builder",
     "postinstall": "electron-builder install-app-deps",
     "rebuild": "electron-rebuild -f -w sqlite3,argon2"
   },
@@ -19,6 +18,7 @@
   ],
   "author": "zyixcode",
   "license": "ISC",
+  "type": "commonjs",
   "devDependencies": {
     "electron": "^39.2.7",
     "electron-builder": "^26.4.0",
@@ -42,24 +42,14 @@
       "output": "dist"
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": "nsis",
       "icon": "assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "MyVault",
-      "uninstallDisplayName": "MyVault",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "createStartMenuShortcut": true
     }
   }
 }

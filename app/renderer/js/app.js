@@ -280,7 +280,37 @@ window.del = async (id) => {
     if (c.isConfirmed) { await window.api.vault.deleteAccount(id); loadAccounts(); loadChart(); }
 };
 
-window.copy = async (txt) => { await window.api.utils.copy(txt); Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 }).fire({ icon: 'success', title: 'Kopyalandı' }); };
+window.copy = async (txt) => {
+    await window.api.utils.copy(txt);
+
+    Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    }).fire({
+        icon: 'success',
+        title: 'Kopyalandı',
+        html: '<small style="color: #666;">(10 saniye sonra silinecek.)</small>'
+    });
+
+    setTimeout(async () => {
+        await window.api.utils.copy(""); 
+        
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Pano Temizlendi',
+            text: 'Güvenliğiniz için şifre silindi.',
+            showConfirmButton: false,
+            timer: 2000,
+            footer: '🗑️ Pano Sıfırlandı' 
+        });
+    }, 10000); 
+};
+
 window.showLogs = async () => {
     const res = await window.api.vault.getLogs();
     const tbody = document.getElementById('logTableBody');
