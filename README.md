@@ -31,7 +31,7 @@
 
 ## 🧠 Sistem Nasıl Çalışır?
 
-Uygulama, **Local-First** (Önce Yerel) prensibiyle çalışır ve internet bağlantısı gerektirmez:
+Uygulama, **Local-First** (Önce Yerel) prensibiyle çalışır:
 
 ### 1️⃣ Master Password Güvenliği
 - Uygulama ilk açılışta bir ana şifre oluşturmanızı ister. Bu şifre Argon2 ile hashlenerek veritabanına kaydedilir. Ana şifre olmadan veritabanı içeriği okunamaz.
