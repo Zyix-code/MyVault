@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const argon2 = require('argon2');
 
 const ALGORITHM = 'aes-256-cbc';
-const SECRET_KEY = crypto.scryptSync('myvault_ultra_secure_key_2026', 'salt_v4_final', 32);
+const SECRET_KEY = crypto.scryptSync('4f8a2c_Mervyk_Zyix_2026_!zPq9$LmWv_K3y', 'salt_v4_final', 32);
 
 function encrypt(text) {
     if (!text) return null;

@@ -25,7 +25,7 @@ ipcMain.handle('auth:get-question', () => vaultService.getSecurityQuestion());
 ipcMain.handle('auth:reset', (_, d) => handleServiceCall(vaultService.resetPassword(d.answer, d.newPass)));
 
 ipcMain.handle('vault:get-accounts', () => handleServiceData(vaultService.getAccounts()));
-ipcMain.handle('vault:add-account', (_, d) => handleServiceCall(vaultService.addAccount(d.service, d.username, d.password, d.priority, d.category)));
+ipcMain.handle('vault:add-account', (_, d) => handleServiceCall(vaultService.addAccount(d.service, d.username, d.password, d.priority, d.category, d.notes)));
 ipcMain.handle('vault:delete-account', (_, id) => handleServiceCall(vaultService.deleteAccount(id)));
 ipcMain.handle('vault:get-logs', () => handleServiceData(vaultService.getLogs()));
 ipcMain.handle('vault:get-health', () => vaultService.getPasswordHealth());

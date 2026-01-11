@@ -24,9 +24,10 @@ async function setupMaster(password, question, answer) {
     if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(password)) {
         throw new Error("Güvensiz Şifre: En az 8 karakter, büyük/küçük harf ve rakam gereklidir.");
     }
-
-    const passHash = await hashPassword(password);
-    const answerHash = await hashPassword(answer.toLowerCase().trim());
+    const [passHash, answerHash] = await Promise.all([
+        hashPassword(password),
+        hashPassword(answer.toLowerCase().trim())
+    ]);
     await Promise.all([
         runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['master_pass_hash', passHash]),
         runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['sec_question', question]),
@@ -39,24 +40,19 @@ async function setupMaster(password, question, answer) {
 
 async function login(password, suppressLog = false) {
     const lockRow = await getAsync("SELECT value FROM config WHERE key = 'lock_until'");
-    if (lockRow && lockRow.value) {
+    if (lockRow?.value) {
         const lockTime = new Date(lockRow.value);
         if (new Date() < lockTime) {
-            const remaining = Math.ceil((lockTime - new Date()) / 1000);
-            throw new Error(`Sistem KİLİTLİ! ${remaining} sn bekleyin.`);
-        } else {
-            await Promise.all([
-                runAsync("UPDATE config SET value = NULL WHERE key = 'lock_until'"),
-                runAsync("UPDATE config SET value = '0' WHERE key = 'login_attempts'")
-            ]);
+            throw new Error(`Sistem KİLİTLİ! ${Math.ceil((lockTime - new Date()) / 1000)} sn bekleyin.`);
         }
+        await Promise.all([
+            runAsync("UPDATE config SET value = NULL WHERE key = 'lock_until'"),
+            runAsync("UPDATE config SET value = '0' WHERE key = 'login_attempts'")
+        ]);
     }
-
     const passRow = await getAsync("SELECT value FROM config WHERE key = 'master_pass_hash'");
     if (!passRow) throw new Error("Sistem kurulu değil!");
-    
     const success = await verifyPassword(passRow.value, password);
-
     if (success) {
         await Promise.all([
             runAsync("UPDATE config SET value = '0' WHERE key = 'login_attempts'"),
@@ -64,33 +60,29 @@ async function login(password, suppressLog = false) {
         ]);
         if (!suppressLog) await logAction('GİRİŞ BAŞARILI', 'Kasa açıldı.');
         return true;
-    } else {
-        const attRow = await getAsync("SELECT value FROM config WHERE key = 'login_attempts'");
-        let attempts = attRow ? (parseInt(attRow.value) || 0) + 1 : 1;
-        await runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['login_attempts', attempts.toString()]);
-        
-        if (!suppressLog) await logAction('GİRİŞ HATASI', `Hatalı deneme: ${attempts}`);
-
-        if (attempts >= 3) {
-            const unlockTime = new Date(new Date().getTime() + 30000).toISOString();
-            await runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['lock_until', unlockTime]);
-            await logAction('SİSTEM KİLİTLENDİ', 'Brute-force koruması.');
-            throw new Error("Çok fazla hatalı giriş! Sistem 30 saniye kilitlendi.");
-        }
-        throw new Error("Hatalı Şifre!");
     }
+    const attRow = await getAsync("SELECT value FROM config WHERE key = 'login_attempts'");
+    const attempts = (parseInt(attRow?.value) || 0) + 1;
+    await runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['login_attempts', attempts.toString()]);
+    if (!suppressLog) await logAction('GİRİŞ HATASI', `Hatalı deneme: ${attempts}`);
+    if (attempts >= 3) {
+        const unlockTime = new Date(Date.now() + 30000).toISOString();
+        await runAsync("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", ['lock_until', unlockTime]);
+        await logAction('SİSTEM KİLİTLENDİ', 'Brute-force koruması aktif.');
+        throw new Error("Çok fazla hatalı giriş! Sistem 30 saniye kilitlendi.");
+    }
+    throw new Error("Hatalı Şifre!");
 }
 
 async function getSecurityQuestion() {
     const row = await getAsync("SELECT value FROM config WHERE key = 'sec_question'");
-    return row ? row.value : null;
+    return row?.value || null;
 }
 
 async function resetPassword(answer, newPassword) {
     if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(newPassword)) {
         throw new Error("Güvensiz Şifre: En az 8 karakter, büyük/küçük harf ve rakam gereklidir.");
     }
-
     const row = await getAsync("SELECT value FROM config WHERE key = 'sec_answer_hash'");
     if (!row) return false;
     const isCorrect = await verifyPassword(row.value, answer.toLowerCase().trim());
@@ -108,26 +100,23 @@ async function resetPassword(answer, newPassword) {
     throw new Error("Yanlış güvenlik cevabı.");
 }
 
-async function addAccount(service, username, password, priority, category) {
+async function addAccount(service, username, password, priority, category, notes) {
     const { iv, content } = encrypt(password);
-    const safePriority = priority || 'Low';
-    const safeCategory = category || 'Diğer';
     await runAsync(
-        "INSERT INTO accounts (service_name, username, encrypted_password, iv, priority, category) VALUES (?, ?, ?, ?, ?, ?)",
-        [service, username, content, iv, safePriority, safeCategory]
+        "INSERT INTO accounts (service_name, username, encrypted_password, iv, priority, category, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [service, username, content, iv, priority || 'Low', category || 'Diğer', notes || '']
     );
-    await logAction('HESAP EKLENDİ', `${service} (${safeCategory})`);
+    await logAction('HESAP EKLENDİ', `${service} (${category || 'Diğer'})`);
 }
 
 async function updateAccount(data) {
-    const { id, service, username, password, priority, category } = data;
+    const { id, service, username, password, priority, category, notes } = data;
     const { iv, content } = encrypt(password); 
-    const safeCategory = category || 'Diğer';
     await runAsync(`
         UPDATE accounts 
-        SET service_name = ?, username = ?, encrypted_password = ?, iv = ?, priority = ?, category = ?, updated_at = CURRENT_TIMESTAMP 
+        SET service_name = ?, username = ?, encrypted_password = ?, iv = ?, priority = ?, category = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-    `, [service, username, content, iv, priority, safeCategory, id]);
+    `, [service, username, content, iv, priority, category || 'Diğer', notes || '', id]);
     await logAction('GÜNCELLEME', `${service} hesabı güncellendi.`);
     return true;
 }
@@ -146,10 +135,11 @@ async function getAccounts() {
                 username: row.username,
                 priority: row.priority,
                 category: row.category || 'Diğer',
+                notes: row.notes || '',
                 password: decrypt(row.encrypted_password, row.iv)
             };
         } catch (e) {
-            return { ...row, password: 'HATA: Çözülemedi' };
+            return { ...row, password: 'HATA: Çözülemedi', notes: row.notes || '' };
         }
     });
 }
@@ -157,13 +147,13 @@ async function getAccounts() {
 async function deleteAccount(id) {
     const acc = await getAsync("SELECT service_name FROM accounts WHERE id = ?", [id]);
     await runAsync("DELETE FROM accounts WHERE id = ?", [id]);
-    await logAction('HESAP SİLİNDİ', `Silinen Kayıt: ${acc ? acc.service_name : 'Bilinmeyen'}`);
+    await logAction('HESAP SİLİNDİ', `Silinen Kayıt: ${acc?.service_name || 'Bilinmeyen'}`);
 }
 
 async function checkPwned(password) {
     try {
         if (!password) return 0;
-        const hash = sha1(password);
+        const hash = sha1(password).toUpperCase();
         const prefix = hash.substring(0, 5);
         const suffix = hash.substring(5);
         const controller = new AbortController();
@@ -172,63 +162,41 @@ async function checkPwned(password) {
         clearTimeout(timeoutId);
         if (!res.ok) return -1;
         const text = await res.text();
-        const match = text.match(new RegExp(`^${suffix}:(\\d+)$`, 'm'));
-        return match ? parseInt(match[1]) : 0;
+        const match = text.split('\n').find(line => line.startsWith(suffix));
+        return match ? parseInt(match.split(':')[1]) : 0;
     } catch (e) { return -1; }
 }
 
 async function getPasswordHealth() {
     const accounts = await getAccounts();
-    let weakCount = 0, reusedCount = 0, strongCount = 0;
-    let chartReused = 0, chartWeak = 0, chartStrong = 0;
+    const stats = { weak: 0, reused: 0, strong: 0 };
+    const chart = { weak: 0, reused: 0, strong: 0 };
     const counts = {};
-    const uniquePasswords = [];
 
     accounts.forEach(a => {
-        if (!a.password) return;
-        counts[a.password] = (counts[a.password] || 0) + 1;
-        if(counts[a.password] === 1) uniquePasswords.push(a.password);
+        if (a.password) counts[a.password] = (counts[a.password] || 0) + 1;
     });
 
-    const pwnedStatus = {};
-    const chunkSize = 10;
-    for (let i = 0; i < uniquePasswords.length; i += chunkSize) {
-        const chunk = uniquePasswords.slice(i, i + chunkSize);
-        await Promise.all(chunk.map(async (pwd) => {
-            const leaks = await checkPwned(pwd);
-            pwnedStatus[pwd] = leaks > 0;
-        }));
+    for (const a of accounts) {
+        if (!a.password) continue;
+        const isReused = counts[a.password] > 1;
+        const isSimple = a.password.length < 8 || !/\d/.test(a.password) || !/[a-zA-Z]/.test(a.password);
+        const leaks = await checkPwned(a.password);
+        const isWeak = isSimple || leaks > 0;
+
+        if (isWeak) { stats.weak++; chart.weak++; }
+        else if (isReused) { stats.reused++; chart.reused++; }
+        else { stats.strong++; chart.strong++; }
     }
 
-    accounts.forEach(a => {
-        const p = a.password;
-        if (!p) return;
-        let isReused = counts[p] > 1;
-        let isLeaked = pwnedStatus[p] === true;
-        let isSimple = (p.length < 8 || !/\d/.test(p) || !/[a-zA-Z]/.test(p));
-        let isWeak = isSimple || isLeaked; 
-
-        if (isReused) reusedCount++;
-        if (isWeak) weakCount++;
-        if (!isReused && !isWeak) strongCount++;
-
-        if (isWeak) chartWeak++; 
-        else if (isReused) chartReused++; 
-        else chartStrong++;
-    });
-
-    return { 
-        stats: { weak: weakCount, reused: reusedCount, strong: strongCount },
-        chart: { weak: chartWeak, reused: chartReused, strong: chartStrong },
-        total: accounts.length 
-    };
+    return { stats, chart, total: accounts.length };
 }
 
 async function exportData(filePath, password) {
     await login(password, true);
     const accounts = await getAccounts();
     fs.writeFileSync(filePath, JSON.stringify(accounts, null, 2), 'utf-8');
-    await logAction('DIŞA AKTARMA', 'Tüm veriler şifresiz olarak dışa aktarıldı.');
+    await logAction('DIŞA AKTARMA', 'Veriler şifresiz dışa aktarıldı.');
 }
 
 async function importData(filePath) {
@@ -236,18 +204,15 @@ async function importData(filePath) {
         const accounts = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         let count = 0;
         for (const acc of accounts) {
-            const exists = await getAsync(
-                "SELECT id FROM accounts WHERE service_name = ? AND username = ?", 
-                [acc.service_name, acc.username]
-            );
+            const exists = await getAsync("SELECT id FROM accounts WHERE service_name = ? AND username = ?", [acc.service_name, acc.username]);
             if(!exists) {
-                await addAccount(acc.service_name, acc.username, acc.password, acc.priority || 'Low', acc.category || 'Diğer');
+                await addAccount(acc.service_name, acc.username, acc.password, acc.priority, acc.category, acc.notes);
                 count++;
             }
         }
         await logAction('İÇE AKTARMA', `${count} yeni hesap yüklendi.`);
         return count;
-    } catch (e) { throw new Error("Dosya okuma veya JSON hatası: " + e.message); }
+    } catch (e) { throw new Error("İçe aktarma hatası: " + e.message); }
 }
 
 module.exports = {

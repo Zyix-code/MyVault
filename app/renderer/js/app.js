@@ -59,13 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (updateBtn) updateBtn.addEventListener('click', handleUpdateAccount);
 
     document.getElementById('saveAccount').addEventListener('click', handleSaveAccount);
+    
     document.getElementById('genPass').addEventListener('click', async () => {
         document.getElementById('addPass').value = await window.api.utils.generatePassword();
     });
 
     document.getElementById('search').addEventListener('input', (e) => { 
         const v = e.target.value.toLowerCase(); 
-        document.querySelectorAll('.col-md-4').forEach(el => {
+        document.querySelectorAll('#list > div').forEach(el => {
             el.style.display = el.innerText.toLowerCase().includes(v) ? 'block' : 'none';
         });
     });
@@ -73,10 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const addModalEl = document.getElementById('addModal');
     if (addModalEl) {
         addModalEl.addEventListener('hidden.bs.modal', () => {
-            document.getElementById('addService').value = '';
-            document.getElementById('addUser').value = '';
-            document.getElementById('addPass').value = '';
-            document.getElementById('addPriority').value = 'Low'; 
+            ['addService', 'addUser', 'addPass', 'addNote'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('addPriority').value = 'Medium'; 
             document.getElementById('addCategory').value = 'Diğer'; 
         });
     }
@@ -128,52 +127,76 @@ function renderList() {
     };
 
     list.innerHTML = filtered.map(a => {
-        const logoData = getLogoData(a.service_name);
-        const firstChar = a.service_name.trim().charAt(0).toUpperCase();
-        const iconHtml = logoData.type === 'img'
-            ? `<div class="service-icon-box"><img src="${logoData.src}" class="service-icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"> <div class="service-icon-fallback" style="display:none;">${firstChar}</div></div>`
-            : `<div class="service-icon-box"><div class="service-icon-fallback" style="display:flex;">${firstChar}</div></div>`;
+    const logoData = getLogoData(a.service_name);
+    const firstChar = a.service_name.trim().charAt(0).toUpperCase();
+    
+    const iconHtml = `<div class="service-icon-box">
+        ${logoData.type === 'img' 
+            ? `<img src="${logoData.src}" class="service-icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+               <div class="service-icon-fallback" style="display:none;">${firstChar}</div>`
+            : `<div class="service-icon-fallback">${firstChar}</div>`
+        }
+    </div>`;
 
-        return `
+    const noteHtml = a.notes ? `
+        <div class="note-area shadow-sm">
+            <div class="fw-bold text-primary mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                <i class="bi bi-sticky-fill me-1"></i> NOT
+            </div>
+            <div class="text-dark">${safe(a.notes)}</div>
+        </div>` : '';
+
+    return `
         <div class="col-md-4 col-sm-6 mb-3">
-            <div class="account-card priority-${a.priority} h-100 d-flex flex-column shadow-sm border-0">
-                <div class="d-flex justify-content-between mb-3 align-items-center">
-                    <span class="badge bg-light text-secondary border">${safe(a.category)}</span>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-light text-primary border-0 shadow-sm" onclick="editAccount(${a.id})"><i class="bi bi-pencil-square"></i></button>
-                        <button class="btn btn-sm btn-light text-danger border-0 shadow-sm" onclick="del(${a.id})"><i class="bi bi-trash-fill"></i></button>
+            <div class="account-card priority-${a.priority} shadow-sm border-0">
+                <div class="d-flex justify-content-between mb-2 align-items-center">
+                    <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">${safe(a.category)}</span>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm p-1 text-primary border-0" onclick="editAccount(${a.id})"><i class="bi bi-pencil-square"></i></button>
+                        <button class="btn btn-sm p-1 text-danger border-0" onclick="del(${a.id})"><i class="bi bi-trash-fill"></i></button>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-3 mb-4">
+                
+                <div class="d-flex align-items-center gap-3 mb-2">
                     ${iconHtml}
                     <div style="min-width: 0;"> 
-                        <h5 class="fw-bold text-dark m-0 text-truncate" title="${safe(a.service_name)}">${safe(a.service_name)}</h5>
-                        <small class="text-muted text-truncate d-block" title="${safe(a.username || '')}">${safe(a.username || 'Kullanıcı adı yok')}</small>
+                        <h6 class="fw-bold text-dark m-0 text-truncate">${safe(a.service_name)}</h6>
+                        <small class="text-muted text-truncate d-block" style="font-size: 0.75rem;">${safe(a.username || 'Kullanıcı adı yok')}</small>
                     </div>
                 </div>
-                <div class="mt-auto">
-                    <div class="pass-field blur w-100 p-2 rounded bg-light text-center" style="cursor:pointer;" onclick="copy('${safe(a.password)}')" title="Kopyalamak için tıkla">
-                        <span class="text-dark fw-bold">${safe(a.password)}</span>
+
+                ${noteHtml}
+
+                <div class="mt-auto pt-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="text-muted m-0" style="font-size: 0.65rem; font-weight: 700;">GÜVENLİ ŞİFRE</label>
+                        <i class="bi bi-eye-fill text-muted" style="font-size: 0.75rem;"></i>
+                    </div>
+                    <div class="pass-field" onclick="copy('${safe(a.password)}')" title="Kopyala">
+                        <span class="blur font-monospace" style="font-size: 0.9rem;">${safe(a.password)}</span>
                     </div>
                 </div>
             </div>
         </div>`;
-    }).join('');
+}).join('');
 }
 
 window.editAccount = (id) => {
     const acc = currentAccounts.find(x => x.id === id);
     if (!acc) return;
+    
     document.getElementById('editId').value = acc.id;
     document.getElementById('editService').value = acc.service_name;
     document.getElementById('editUser').value = acc.username;
     document.getElementById('editPass').value = acc.password;
     document.getElementById('editPriority').value = acc.priority;
     document.getElementById('editCategory').value = acc.category || 'Diğer'; 
+    document.getElementById('editNote').value = acc.notes || '';
 
     initialEditData = {
-        id: acc.id.toString(), service: acc.service_name, username: acc.username, password: acc.password,
-        priority: acc.priority, category: acc.category || 'Diğer'
+        id: acc.id.toString(), service: acc.service_name, username: acc.username, 
+        password: acc.password, priority: acc.priority, category: acc.category || 'Diğer',
+        notes: acc.notes || ''
     };
     new bootstrap.Modal(document.getElementById('editModal')).show();
 };
@@ -185,49 +208,54 @@ async function handleUpdateAccount() {
         username: document.getElementById('editUser').value,
         password: document.getElementById('editPass').value,
         priority: document.getElementById('editPriority').value,
-        category: document.getElementById('editCategory').value
+        category: document.getElementById('editCategory').value,
+        notes: document.getElementById('editNote').value
     };
 
-    if (!currentData.service || !currentData.password) return Swal.fire('Eksik Bilgi', 'Servis ve şifre zorunlu.', 'warning');
-    if (JSON.stringify(initialEditData) === JSON.stringify(currentData)) return Swal.fire({ icon: 'info', title: 'Değişiklik Yok', showConfirmButton: false, timer: 1500 });
+    if (!currentData.service || !currentData.password) return Swal.fire('Hata', 'Gerekli alanları doldurun.', 'warning');
+    if (JSON.stringify(initialEditData) === JSON.stringify(currentData)) {
+        return bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+    }
 
     const res = await window.api.vault.updateAccount(currentData);
     if (res.success) {
         bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         loadAccounts(); loadChart();
         Swal.fire({ toast: true, icon: 'success', title: 'Güncellendi', position: 'top-end', showConfirmButton: false, timer: 2000 });
-    } else { Swal.fire('Hata', res.error, 'error'); }
+    }
 }
 
 window.generateEditPass = async () => { document.getElementById('editPass').value = await window.api.utils.generatePassword(); };
 
 async function handleSaveAccount() {
-    const s = document.getElementById('addService').value;
-    const u = document.getElementById('addUser').value;
-    const p = document.getElementById('addPass').value;
-    const prio = document.getElementById('addPriority').value;
-    const cat = document.getElementById('addCategory').value;
+    const data = {
+        service: document.getElementById('addService').value,
+        username: document.getElementById('addUser').value,
+        password: document.getElementById('addPass').value,
+        priority: document.getElementById('addPriority').value,
+        category: document.getElementById('addCategory').value,
+        notes: document.getElementById('addNote').value
+    };
 
-    if (!s || !p) return Swal.fire('Eksik Bilgi', 'Servis adı ve şifre zorunludur.', 'warning');
+    if (!data.service || !data.password) return Swal.fire('Eksik Bilgi', 'Servis ve şifre zorunludur.', 'warning');
+
     const btn = document.getElementById('saveAccount');
-    const oldHtml = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>';
+    btn.disabled = true;
 
-    const leaks = await window.api.utils.checkPwned(p);
-    btn.disabled = false; btn.innerHTML = oldHtml;
-
+    const leaks = await window.api.utils.checkPwned(data.password);
     if (leaks > 0) {
-        const c = await Swal.fire({ title: '⚠️ GÜVENLİK RİSKİ', html: `Bu şifre <b>${leaks} kez</b> sızdırılmış!`, icon: 'error', showCancelButton: true, confirmButtonText: 'Kaydet', cancelButtonText: 'İptal', confirmButtonColor: '#d33' });
-        if (!c.isConfirmed) return;
+        const c = await Swal.fire({ title: 'RİSKLİ ŞİFRE', text: `Bu şifre daha önce ${leaks} kez sızdırılmış. Yine de kaydedilsin mi?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Evet, Kaydet', cancelButtonText: 'Vazgeç' });
+        if (!c.isConfirmed) { btn.disabled = false; return; }
     }
 
-    const res = await window.api.vault.addAccount({ service: s, username: u, password: p, priority: prio, category: cat });
+    const res = await window.api.vault.addAccount(data);
+    btn.disabled = false;
+
     if (res.success) {
         bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
         loadAccounts(); loadChart();
-        ['addService', 'addUser', 'addPass'].forEach(id => document.getElementById(id).value = '');
-        Swal.fire({ toast: true, icon: leaks > 0 ? 'warning' : 'success', title: 'Kaydedildi', position: 'top-end', showConfirmButton: false, timer: 2000 });
-    } else { Swal.fire('Hata', res.error, 'error'); }
+        Swal.fire({ toast: true, icon: 'success', title: 'Başarıyla Kaydedildi', position: 'top-end', showConfirmButton: false, timer: 2000 });
+    }
 }
 
 window.backupMenu = async () => {

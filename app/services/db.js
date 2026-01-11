@@ -38,6 +38,7 @@ function initDb() {
             iv TEXT NOT NULL,
             priority TEXT DEFAULT 'Low',
             category TEXT DEFAULT 'Diğer',
+            notes TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
