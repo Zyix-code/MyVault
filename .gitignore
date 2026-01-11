@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+
+database/
+*.db
+*.db-journal
+.env
+
+*.log
+myvault_debug.txt
+myvault_error_log.txt
+
+.DS_Store
+Thumbs.db 

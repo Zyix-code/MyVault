@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:;">
+    <title>Giriş - MyVault</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="overflow: hidden;">
+    <div class="login-split">
+        <div class="login-left d-none d-md-flex align-items-center justify-content-center text-center">
+            <div>
+                <div class="mb-4 bg-white bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                    <i class="bi bi-shield-lock-fill display-3 text-white"></i>
+                </div>
+                <h1 class="fw-bold display-5 mb-2">MyVault</h1>
+                <p class="lead opacity-75">Dijital güvenliğin yeni standardı.</p>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-box">
+                <div class="text-center mb-5">
+                    <h3 class="fw-bold text-dark mb-1">Hoş Geldiniz</h3>
+                    <p class="text-muted small">Devam etmek için lütfen kimliğinizi doğrulayın.</p>
+                </div>
+
+                <div id="viewSetup" class="hidden">
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">Yeni Ana Şifre</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key"></i></span>
+                            <input type="password" id="setupPass" class="form-control" placeholder="En az 6 karakter" autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">Güvenlik Sorusu</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-question-circle"></i></span>
+                            <select id="setupQuestion" class="form-select text-dark">
+                            <option>En sevdiğiniz kişi kim?</option>
+                            <option>En sevdiğiniz çocukluk arkadaşınızın adı nedir?</option>
+                            <option>Hayatınızdaki en özel insanın adı nedir?</option>
+
+                            <option>Annenizin kızlık soyadı nedir?</option>
+                            <option>İlk evcil hayvanınızın adı nedir?</option>
+                            <option>İlkokul öğretmeninizin soyadı nedir?</option>
+                            <option>Hangi sokakta büyüdünüz?</option>
+
+                            <option>İlk aracınızın markası veya modeli nedir?</option>
+                            <option>Doğduğunuz şehir hangisidir?</option>
+                            <option>En sevdiğiniz yemek nedir?</option>
+                            <option>Lisenizin adı nedir?</option>
+
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="small fw-bold text-secondary mb-1">Cevap</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-chat-text"></i></span>
+                            <input type="text" id="setupAnswer" class="form-control" placeholder="Cevabınız" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button id="btnSetup" class="btn btn-primary-custom w-100 py-3">
+                        <i class="bi bi-rocket-takeoff me-2"></i>Kurulumu Tamamla
+                    </button>
+                </div>
+
+                <div id="viewLogin" class="hidden">
+                    <div class="mb-4">
+                        <div class="input-group p-1 border rounded-3 bg-white shadow-sm">
+                            <span class="input-group-text bg-transparent border-0 ps-3"><i class="bi bi-lock-fill fs-4 text-primary"></i></span>
+                            <input type="password" id="loginPass" class="form-control bg-transparent border-0 fs-5 fw-bold text-dark" placeholder="Ana Şifre" style="height: 50px;" autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <button id="btnLogin" class="btn btn-primary-custom w-100 py-3 mb-4 fs-6 text-uppercase letter-spacing-1">
+                        Kasa'yı Aç <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                    
+                    <div class="text-center">
+                        <a href="#" id="linkForgot" class="small text-decoration-none text-muted fw-bold d-inline-flex align-items-center hover-link">
+                            <i class="bi bi-shield-exclamation me-1"></i>Şifremi Unuttum
+                        </a>
+                    </div>
+                </div>
+
+                <div id="viewRecovery" class="hidden">
+                    <div class="alert alert-info border-0 bg-icon-info mb-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <span class="small fw-bold">Güvenlik Sorusu:</span>
+                        <div id="recoveryQuestionDisplay" class="mt-1 fw-bold text-dark">...</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-chat-text"></i></span>
+                            <input type="text" id="recoveryAnswer" class="form-control" placeholder="Cevabınız" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key"></i></span>
+                            <input type="password" id="recoveryNewPass" class="form-control" placeholder="Yeni Şifre" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <button id="btnReset" class="btn btn-primary-custom w-100 mb-3 py-2">Şifreyi Sıfırla</button>
+                    <button id="btnBack" class="btn btn-light w-100 text-muted small fw-bold">Girişe Dön</button>
+                </div>
+                <div class="mt-5 text-center">
+                    <p class="text-muted" style="font-size: 0.75rem;">
+                        Bu yazılım <strong>Selçuk Şahin (zyixcode)❤️</strong> <br>tarafından geliştirilmiştir.<br>
+                        Hata bildirimi ve önerileriniz için: 
+                        <a href="mailto:selcuksahin158@gmail.com" class="text-decoration-none text-primary">selcuksahin158@gmail.com</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

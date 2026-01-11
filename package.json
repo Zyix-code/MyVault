@@ -1,0 +1,55 @@
+{
+  "name": "myvault",
+  "productName": "MyVault",
+  "version": "1.0.0",
+  "description": "Kişisel verilerinizi en üst düzey güvenlik standartlarıyla koruyan gelişmiş kasa uygulaması (zyixcode tarafından yapılmıştır).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-rebuild -f -w sqlite3,argon2"
+  },
+  "keywords": [
+    "password-manager",
+    "security",
+    "vault",
+    "zyixcode"
+  ],
+  "author": "zyixcode",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "chart.js": "^4.5.1",
+    "dotenv": "^17.2.3",
+    "sqlite3": "^5.1.7"
+  },
+  "build": {
+    "appId": "com.myvault.app",
+    "productName": "MyVault",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/sqlite3/**/*",
+      "**/node_modules/argon2/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
